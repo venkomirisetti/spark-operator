@@ -148,13 +148,16 @@ See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall) for command docum
 | controller.workqueueRateLimiter.maxDelay.enable | bool | `true` | Specifies whether to enable max delay for the workqueue rate limiter. This is useful to avoid losing events when the workqueue is full. |
 | controller.workqueueRateLimiter.maxDelay.duration | string | `"6h"` | Specifies the maximum delay duration for the workqueue rate limiter. |
 | submitter.enable | bool | `false` | Specifies whether to enable the REST submitter service. |
+| submitter.image.repository | string | `"docker.io/venkomirisetti/k8s-spark-submitter"` | Submitter service image repository. |
+| submitter.image.tag | string | `"4.0.1-7"` | Submitter service image tag. |
+| submitter.image.pullPolicy | string | `"IfNotPresent"` | Submitter service image pull policy. |
 | submitter.replicas | int | `1` | Number of replicas of the submitter service. |
 | submitter.controllerStartupTimeout | string | `"5m"` | How long the controller waits for the submitter service to become reachable at startup. |
 | submitter.startupProbe.periodSeconds | int | `5` | Seconds between probe attempts. |
 | submitter.startupProbe.failureThreshold | int | `60` | Number of failures before restart. (failureThreshold × periodSeconds) should >= controllerStartupTimeout. |
 | submitter.submissionRequestTimeout | string | `"2m"` | HTTP request timeout per spark submission attempt. |
 | submitter.retry.maxRetries | int | `3` | Max retry attempts. |
-| submitter.retry.initialBackoff | string | `"1s"` | Initial backoff duration before the first retry. Doubles on each subsequent attempt. |
+| submitter.retry.initialBackoff | string | `"2s"` | Initial backoff duration before the first retry. Doubles on each subsequent attempt. |
 | submitter.port | int | `8080` | Port on which the submitter service listens. |
 | submitter.submitPath | string | `"/api/v1/spark-submit"` | Path for the submit endpoint on the submitter service. |
 | submitter.tls.enabled | bool | `false` | Enable mTLS for controller ↔ submitter communication. |
