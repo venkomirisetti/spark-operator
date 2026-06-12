@@ -27,3 +27,17 @@ Create the name of the certificate to be used by webhook.
 {{- define "spark-operator.certManager.certificate.name" -}}
 {{ include "spark-operator.name" . }}-certificate
 {{- end -}}
+
+{{/*
+Create the name of the certificate to be used by submitter.
+*/}}
+{{- define "spark-operator.certManager.submitter.certificate.name" -}}
+{{ include "spark-operator.name" . }}-submitter-certificate
+{{- end -}}
+
+{{/*
+Create the name of the secret to be used by submitter TLS.
+*/}}
+{{- define "spark-operator.submitter.tls.secretName" -}}
+{{ include "spark-operator.submitter.name" . }}-tls
+{{- end -}}

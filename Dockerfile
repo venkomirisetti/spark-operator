@@ -51,6 +51,7 @@ RUN mkdir -p /etc/k8s-webhook-server/serving-certs /home/spark && \
     chmod -R g+rw /etc/k8s-webhook-server/serving-certs && \
     chown -R spark /etc/k8s-webhook-server/serving-certs /home/spark
 
+
 USER ${SPARK_UID}:${SPARK_GID}
 
 COPY --from=builder /workspace/bin/spark-operator /usr/bin/spark-operator

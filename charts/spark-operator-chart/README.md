@@ -147,6 +147,38 @@ See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall) for command docum
 | controller.workqueueRateLimiter.bucketSize | int | `500` | Specifies the maximum number of items that can be in the workqueue at any given time. |
 | controller.workqueueRateLimiter.maxDelay.enable | bool | `true` | Specifies whether to enable max delay for the workqueue rate limiter. This is useful to avoid losing events when the workqueue is full. |
 | controller.workqueueRateLimiter.maxDelay.duration | string | `"6h"` | Specifies the maximum delay duration for the workqueue rate limiter. |
+| submitter.enable | bool | `false` | Specifies whether to enable the REST submitter service. |
+| submitter.replicas | int | `1` | Number of replicas of the submitter service. |
+| submitter.controllerStartupTimeout | string | `"5m"` | How long the controller waits for the submitter service to become reachable at startup. |
+| submitter.startupProbe.periodSeconds | int | `5` | Seconds between probe attempts. |
+| submitter.startupProbe.failureThreshold | int | `60` | Number of failures before restart. (failureThreshold × periodSeconds) should >= controllerStartupTimeout. |
+| submitter.submissionRequestTimeout | string | `"2m"` | HTTP request timeout per spark submission attempt. |
+| submitter.retry.maxRetries | int | `3` | Max retry attempts. |
+| submitter.retry.initialBackoff | string | `"1s"` | Initial backoff duration before the first retry. Doubles on each subsequent attempt. |
+| submitter.port | int | `8080` | Port on which the submitter service listens. |
+| submitter.submitPath | string | `"/api/v1/spark-submit"` | Path for the submit endpoint on the submitter service. |
+| submitter.tls.enabled | bool | `false` | Enable mTLS for controller ↔ submitter communication. |
+| submitter.tls.certDir | string | `"/etc/tls/submitter"` | Mount path for TLS certificates in the pods. |
+| submitter.serviceAccount.create | bool | `true` | Specifies whether to create a service account for the submitter. |
+| submitter.serviceAccount.name | string | `""` | Optional name for the submitter service account. |
+| submitter.serviceAccount.annotations | object | `{}` | Extra annotations for the submitter service account. |
+| submitter.serviceAccount.automountServiceAccountToken | bool | `true` | Auto-mount service account token to the submitter pods. |
+| submitter.rbac.create | bool | `true` | Specifies whether to create RBAC resources for the submitter. |
+| submitter.labels | object | `{}` | Extra labels for submitter pods. |
+| submitter.annotations | object | `{}` | Extra annotations for submitter pods. |
+| submitter.env | list | `[]` | Environment variables for the submitter container. |
+| submitter.envFrom | list | `[]` | Environment variable sources for the submitter container. |
+| submitter.volumeMounts | list | `[]` | Volume mounts for the submitter container. |
+| submitter.volumes | list | `[]` | Volumes for submitter pods. |
+| submitter.resources | object | `{}` | Resource requests and limits for the submitter container. |
+| submitter.securityContext | object | `{}` | Security context for the submitter container. |
+| submitter.nodeSelector | object | `{}` | Node selector for submitter pods. |
+| submitter.affinity | object | `{}` | Affinity for submitter pods. |
+| submitter.tolerations | list | `[]` | List of node taints to tolerate for submitter pods. |
+| submitter.priorityClassName | string | `""` | Priority class for submitter pods. |
+| submitter.podSecurityContext | object | `{}` | Security context for submitter pods. |
+| submitter.podDisruptionBudget.enable | bool | `false` | Specifies whether to create pod disruption budget for submitter. Requires replicas > 1. |
+| submitter.podDisruptionBudget.minAvailable | int | `1` | Minimum number of available submitter pods. |
 | webhook.enable | bool | `true` | Specifies whether to enable webhook. |
 | webhook.replicas | int | `1` | Number of replicas of webhook server. |
 | webhook.revisionHistoryLimit | int | `10` | The number of old history to retain to allow rollback. |

@@ -298,6 +298,126 @@ controller:
       # -- Specifies the maximum delay duration for the workqueue rate limiter.
       duration: 6h
 
+# Spark Submitter Service configuration.
+# When enabled, deploys the submitter service and configures the controller to use it
+# instead of the default spark-submit CLI.
+submitter:
+  # -- Specifies whether to enable the REST submitter service.
+  enable: false
+
+  image:
+    # -- Submitter service image repository.
+    repository: docker.io/venkomirisetti/k8s-spark-submitter
+    # -- Submitter service image tag.
+    tag: 4.0.1-7
+    # -- Submitter service image pull policy.
+    pullPolicy: IfNotPresent
+
+  # -- Number of replicas of the submitter service.
+  replicas: 1
+
+  # -- How long the controller waits for the submitter service to become reachable at startup.
+  controllerStartupTimeout: 5m
+  # Controller startup probe settings. Allows the controller to block during startup
+  # without being killed by liveness probe. Should cover controllerStartupTimeout.
+  startupProbe:
+    # -- Seconds between probe attempts.
+    periodSeconds: 5
+    # -- Number of failures before restart. (failureThreshold × periodSeconds) should >= controllerStartupTimeout.
+    failureThreshold: 60
+
+  # -- HTTP request timeout per spark submission attempt.
+  submissionRequestTimeout: 2m
+
+  # Retry settings for transient spark submission failures (e.g. 429, 5xx, network errors).
+  # Uses exponential backoff: initialBackoff, initialBackoff*2, initialBackoff*4, ...
+  retry:
+    # -- Max retry attempts.
+    maxRetries: 3
+    # -- Initial backoff duration before the first retry. Doubles on each subsequent attempt.
+    initialBackoff: 2s
+
+  # -- Port on which the submitter service listens.
+  port: 8080
+
+  # -- Path for the submit endpoint on the submitter service.
+  submitPath: /api/v1/spark-submit
+
+  # TLS configuration for controller ↔ submitter communication.
+  # Requires certManager.enable: true. cert-manager auto-provisions the TLS secret
+  # and both controller and submitter pods mount it for mTLS.
+  tls:
+    # -- Enable mTLS for controller ↔ submitter communication.
+    enabled: false
+    # -- Mount path for TLS certificates in the pods.
+    certDir: /etc/tls/submitter
+
+  serviceAccount:
+    # -- Specifies whether to create a service account for the submitter.
+    create: true
+    # -- Optional name for the submitter service account.
+    name: ""
+    # -- Extra annotations for the submitter service account.
+    annotations: {}
+    # -- Auto-mount service account token to the submitter pods.
+    automountServiceAccountToken: true
+
+  rbac:
+    # -- Specifies whether to create RBAC resources for the submitter.
+    create: true
+
+  # -- Extra labels for submitter pods.
+  labels: {}
+
+  # -- Extra annotations for submitter pods.
+  annotations: {}
+
+  # -- Environment variables for the submitter container.
+  env: []
+
+  # -- Environment variable sources for the submitter container.
+  envFrom: []
+
+  # -- Volume mounts for the submitter container.
+  volumeMounts: []
+
+  # -- Volumes for submitter pods.
+  volumes: []
+
+  # -- Resource requests and limits for the submitter container.
+  resources: {}
+  # requests:
+  #   cpu: 100m
+  #   memory: 256Mi
+  # limits:
+  #   cpu: 500m
+  #   memory: 512Mi
+
+  # -- Security context for the submitter container.
+  securityContext: {}
+
+  # -- Node selector for submitter pods.
+  nodeSelector: {}
+
+  # -- Affinity for submitter pods.
+  affinity: {}
+
+  # -- List of node taints to tolerate for submitter pods.
+  tolerations: []
+
+  # -- Priority class for submitter pods.
+  priorityClassName: ""
+
+  # -- Security context for submitter pods.
+  podSecurityContext: {}
+
+  podDisruptionBudget:
+    # -- Specifies whether to create pod disruption budget for submitter.
+    # Requires replicas > 1.
+    enable: false
+    # -- Minimum number of available submitter pods.
+    minAvailable: 1
+
 webhook:
   # -- Specifies whether to enable webhook.
   enable: true

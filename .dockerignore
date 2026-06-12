@@ -5,3 +5,4 @@ codecov.yaml
 cover.out
 .DS_Store
 *.iml
+k8s-spark-submitter/

@@ -40,6 +40,9 @@ IMAGE_REPOSITORY ?= kubeflow/spark-operator/controller
 IMAGE_TAG ?= $(VERSION)
 IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_REPOSITORY):$(IMAGE_TAG)
 
+# Submitter service image (separate from operator image)
+SUBMITTER_IMAGE ?= docker.io/venkomirisetti/k8s-spark-submitter:4.0.1-7
+
 # Deployment method for e2e tests (helm or kustomize)
 DEPLOY_METHOD ?= helm
 
@@ -173,8 +176,8 @@ unit-test: setup-envtest ## Run unit tests.
 
 .PHONY: e2e-test
 e2e-test: envtest ## Run the e2e tests against a Kind k8s instance that is spun up.
-	@echo "Running e2e tests (deploy_method=$(DEPLOY_METHOD))..."
-	DEPLOY_METHOD=$(DEPLOY_METHOD) IMAGE_TAG=$(IMAGE_TAG) go test ./test/e2e/ -v -ginkgo.v -timeout 30m
+	@echo "Running e2e tests (deploy_method=$(DEPLOY_METHOD), submission_strategy=$(SUBMISSION_STRATEGY))..."
+	DEPLOY_METHOD=$(DEPLOY_METHOD) IMAGE_TAG=$(IMAGE_TAG) SUBMISSION_STRATEGY=$(SUBMISSION_STRATEGY) go test ./test/e2e/ -v -ginkgo.v -timeout 30m
 
 ##@ Kustomize
 
@@ -283,6 +286,10 @@ kind-create-cluster: kind ## Create a kind cluster for integration tests.
 .PHONY: kind-load-image
 kind-load-image: kind-create-cluster docker-build ## Load the image into the kind cluster.
 	$(KIND) load docker-image --name $(KIND_CLUSTER_NAME) $(IMAGE)
+ifneq ($(SUBMISSION_STRATEGY),)
+	docker pull $(SUBMITTER_IMAGE) 2>/dev/null || true
+	$(KIND) load docker-image --name $(KIND_CLUSTER_NAME) $(SUBMITTER_IMAGE)
+endif
 
 .PHONY: kind-delete-cluster
 kind-delete-cluster: kind ## Delete the created kind cluster.

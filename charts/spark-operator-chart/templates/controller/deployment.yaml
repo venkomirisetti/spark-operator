@@ -140,6 +140,23 @@ spec:
         {{- if .Values.controller.featureGates }}
         - --feature-gates={{ range $index, $gate := .Values.controller.featureGates }}{{ if $index }},{{ end }}{{ $gate.name }}={{ $gate.enabled }}{{ end }}
         {{- end }}
+        {{- if .Values.submitter.enable }}
+        {{- if and .Values.submitter.tls.enabled (not .Values.certManager.enable) }}
+        {{- fail "certManager.enable is required when submitter.tls.enabled is true" }}
+        {{- end }}
+        - --submission-strategy=rest-submitter
+        - --submitter-service-url={{ include "spark-operator.submitter.url" . }}
+        - --submitter-request-timeout={{ .Values.submitter.submissionRequestTimeout }}
+        - --submitter-startup-timeout={{ .Values.submitter.controllerStartupTimeout }}
+        - --submitter-max-retries={{ .Values.submitter.retry.maxRetries }}
+        - --submitter-initial-backoff={{ .Values.submitter.retry.initialBackoff }}
+        {{- if .Values.submitter.tls.enabled }}
+        - --submitter-tls-enabled=true
+        - --submitter-tls-cert-file={{ .Values.submitter.tls.certDir }}/tls.crt
+        - --submitter-tls-key-file={{ .Values.submitter.tls.certDir }}/tls.key
+        - --submitter-tls-ca-cert-file={{ .Values.submitter.tls.certDir }}/ca.crt
+        {{- end }}
+        {{- end }}
         {{- if or .Values.prometheus.metrics.enable .Values.controller.pprof.enable }}
         ports:
         {{- if .Values.controller.pprof.enable }}
@@ -159,13 +176,29 @@ spec:
         envFrom:
         {{- toYaml . | nindent 8 }}
         {{- end }}
-        {{- with .Values.controller.volumeMounts }}
+        {{- if or .Values.controller.volumeMounts (include "spark-operator.submitter.tlsEnabled" .) }}
         volumeMounts:
+        {{- with .Values.controller.volumeMounts }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if include "spark-operator.submitter.tlsEnabled" . }}
+        - name: submitter-tls
+          mountPath: {{ .Values.submitter.tls.certDir }}
+          readOnly: true
+        {{- end }}
         {{- end }}
         {{- with .Values.controller.resources }}
         resources:
           {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- if .Values.submitter.enable }}
+        startupProbe:
+          httpGet:
+            port: 8081
+            scheme: HTTP
+            path: /healthz
+          failureThreshold: {{ .Values.submitter.startupProbe.failureThreshold }}
+          periodSeconds: {{ .Values.submitter.startupProbe.periodSeconds }}
         {{- end }}
         livenessProbe:
           httpGet:
@@ -188,9 +221,16 @@ spec:
       imagePullSecrets:
       {{- toYaml . | nindent 6 }}
       {{- end }}
-      {{- with .Values.controller.volumes }}
+      {{- if or .Values.controller.volumes (include "spark-operator.submitter.tlsEnabled" .) }}
       volumes:
+      {{- with .Values.controller.volumes }}
       {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- if include "spark-operator.submitter.tlsEnabled" . }}
+      - name: submitter-tls
+        secret:
+          secretName: {{ include "spark-operator.submitter.tls.secretName" . }}
+      {{- end }}
       {{- end }}
       {{- with .Values.controller.nodeSelector }}
       nodeSelector:

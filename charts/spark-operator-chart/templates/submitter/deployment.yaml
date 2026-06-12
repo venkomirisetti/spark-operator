@@ -1,0 +1,139 @@
+{{/*
+Copyright 2024 The Kubeflow authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+
+{{- if .Values.submitter.enable }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "spark-operator.submitter.deploymentName" . }}
+  labels:
+    {{- include "spark-operator.submitter.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.submitter.replicas }}
+  selector:
+    matchLabels:
+      {{- include "spark-operator.submitter.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "spark-operator.submitter.selectorLabels" . | nindent 8 }}
+        {{- with .Values.submitter.labels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.submitter.annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      containers:
+      - name: spark-submitter
+        image: {{ include "spark-operator.submitter.image" . }}
+        imagePullPolicy: {{ .Values.submitter.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.submitter.port }}
+          protocol: TCP
+        - name: probes
+          containerPort: 8081
+          protocol: TCP
+        {{- if or .Values.submitter.env .Values.submitter.tls.enabled }}
+        env:
+        {{- with .Values.submitter.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.submitter.tls.enabled }}
+        - name: TLS_ENABLED
+          value: "true"
+        - name: TLS_CERT_PATH
+          value: {{ .Values.submitter.tls.certDir }}/tls.crt
+        - name: TLS_KEY_PATH
+          value: {{ .Values.submitter.tls.certDir }}/tls.key
+        - name: TLS_CA_CERT_PATH
+          value: {{ .Values.submitter.tls.certDir }}/ca.crt
+        {{- end }}
+        {{- end }}
+        {{- with .Values.submitter.envFrom }}
+        envFrom:
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if or .Values.submitter.volumeMounts .Values.submitter.tls.enabled }}
+        volumeMounts:
+        {{- with .Values.submitter.volumeMounts }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.submitter.tls.enabled }}
+        - name: submitter-tls
+          mountPath: {{ .Values.submitter.tls.certDir }}
+          readOnly: true
+        {{- end }}
+        {{- end }}
+        {{- with .Values.submitter.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            port: probes
+            path: /api/v1/health
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            port: probes
+            path: /api/v1/health
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        {{- with .Values.submitter.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if or .Values.submitter.volumes .Values.submitter.tls.enabled }}
+      volumes:
+      {{- with .Values.submitter.volumes }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- if .Values.submitter.tls.enabled }}
+      - name: submitter-tls
+        secret:
+          secretName: {{ include "spark-operator.submitter.tls.secretName" . }}
+      {{- end }}
+      {{- end }}
+      {{- with .Values.submitter.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.submitter.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.submitter.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- with .Values.submitter.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      serviceAccountName: {{ include "spark-operator.submitter.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.submitter.serviceAccount.automountServiceAccountToken }}
+      {{- with .Values.submitter.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

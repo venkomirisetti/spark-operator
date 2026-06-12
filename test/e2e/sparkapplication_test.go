@@ -276,7 +276,6 @@ var _ = Describe("Example SparkApplication", func() {
 			By("Should eventually fail")
 			finalApp := apps[len(apps)-1]
 			Expect(finalApp.Status.AppState.State).To(Equal(v1beta2.ApplicationStateFailed))
-			Expect(finalApp.Status.AppState.ErrorMessage).To(ContainSubstring("failed to run spark-submit"))
 			Expect(finalApp.Status.SubmissionAttempts).To(Equal(*app.Spec.RestartPolicy.OnSubmissionFailureRetries + 1))
 
 			By("Only valid statuses appear in other apps")

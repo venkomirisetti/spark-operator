@@ -73,6 +73,7 @@ var (
 
 	// deployMethod is read from DEPLOY_METHOD env var; defaults to "helm".
 	deployMethod          string
+	submissionStrategy    string
 	mutatingWebhookName   string
 	validatingWebhookName string
 )
@@ -90,7 +91,9 @@ var _ = BeforeSuite(func() {
 	if deployMethod == "" {
 		deployMethod = "helm"
 	}
+	submissionStrategy = strings.ToLower(os.Getenv("SUBMISSION_STRATEGY"))
 	GinkgoWriter.Printf("Deploy method: %s\n", deployMethod)
+	GinkgoWriter.Printf("Submission strategy: %s\n", submissionStrategy)
 
 	switch deployMethod {
 	case "helm":
@@ -187,7 +190,14 @@ func installViaHelm() {
 	chart, err := loader.Load(chartPath)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(chart).NotTo(BeNil())
-	values, err := chartutil.ReadValuesFile(filepath.Join(chartPath, "ci", "ci-values.yaml"))
+	valuesFile := "ci-values.yaml"
+	if submissionStrategy == "rest-submitter" {
+		valuesFile = "ci-values-submitter.yaml"
+		if os.Getenv("SUBMITTER_TLS_ENABLED") == "true" {
+			valuesFile = "ci-values-submitter-tls.yaml"
+		}
+	}
+	values, err := chartutil.ReadValuesFile(filepath.Join(chartPath, "ci", valuesFile))
 	Expect(err).NotTo(HaveOccurred())
 	Expect(values).NotTo(BeNil())
 	release, err := installAction.Run(chart, values)

@@ -130,6 +130,9 @@ var (
 	scheduledSparkApplicationTimestampPrecision string
 	development                                 bool
 	zapOptions                                  = logzap.Options{}
+
+	// Spark Submission Strategies
+	submissionStrategy string
 )
 
 func NewStartCommand() *cobra.Command {
@@ -215,6 +218,9 @@ func NewStartCommand() *cobra.Command {
 		"If not set, it will be 0 in order to disable the pprof server")
 
 	command.Flags().StringVar(&scheduledSparkApplicationTimestampPrecision, "scheduled-spark-application-timestamp-precision", "nanos", "Timestamp precision for ScheduledSparkApplication run names. Valid values: nanos, micros, millis, seconds, minutes.")
+
+	command.Flags().StringVar(&submissionStrategy, "submission-strategy", sparkapplication.SubmissionStrategySparkSubmit, "Submission strategy: 'spark-submit' (default) or 'rest-submitter'.")
+	sparkapplication.RegisterSubmitterFlags(command)
 
 	flagSet := flag.NewFlagSet("controller", flag.ExitOnError)
 	ctrl.RegisterFlags(flagSet)
@@ -307,7 +313,11 @@ func start() {
 		}
 	}
 
-	sparkSubmitter := &sparkapplication.SparkSubmitter{}
+	sparkSubmitter, err := sparkapplication.NewSubmitter(submissionStrategy)
+	if err != nil {
+		logger.Error(err, "Failed to initialize submitter", "strategy", submissionStrategy)
+		os.Exit(1)
+	}
 
 	// Setup controller for SparkApplication.
 	if err = sparkapplication.NewReconciler(

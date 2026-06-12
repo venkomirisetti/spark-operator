@@ -239,3 +239,42 @@ jobs:
 
       - name: Run e2e tests
         run: make e2e-test DEPLOY_METHOD=${{ matrix.deploy_method }} IMAGE_TAG=local
+
+  e2e-test-submitter:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8s_version:
+          - v1.33.7
+        tls:
+          - "false"
+          - "true"
+    name: e2e-test (${{ matrix.k8s_version }}, helm, rest-submitter, tls=${{ matrix.tls }})
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6
+        with:
+          go-version-file: go.mod
+
+      - name: Create a Kind cluster
+        run: make kind-create-cluster KIND_K8S_VERSION=${{ matrix.k8s_version }}
+
+      - name: Install cert-manager
+        if: matrix.tls == 'true'
+        run: |
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.2/cert-manager.yaml
+          kubectl -n cert-manager wait --for=condition=Available deployment/cert-manager-webhook --timeout=120s
+
+      - name: Build and load image to Kind cluster
+        run: make kind-load-image IMAGE_TAG=local
+
+      - name: Run e2e tests with rest-submitter
+        env:
+          SUBMISSION_STRATEGY: rest-submitter
+          SUBMITTER_TLS_ENABLED: ${{ matrix.tls }}
+        run: make e2e-test DEPLOY_METHOD=helm IMAGE_TAG=local
