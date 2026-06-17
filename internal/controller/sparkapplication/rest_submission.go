@@ -24,7 +24,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -191,13 +190,15 @@ func buildTransport(tlsCfg *TLSConfig) (http.RoundTripper, error) {
 func (c *RestSparkSubmitter) WaitForConnection(ctx context.Context) error {
 	restLogger.Info("Waiting for submitter service to be ready", "addr", c.hostAddr)
 	for {
-		conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", c.hostAddr)
+		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, c.submitURL, nil)
+		resp, err := c.httpClient.Do(req)
 		if err == nil {
-			_ = conn.Close()
+			resp.Body.Close()
 			restLogger.Info("Submitter service is ready", "addr", c.hostAddr)
 			return nil
 		}
 		restLogger.V(1).Info("Submitter service not yet ready, retrying", "addr", c.hostAddr, "error", err)
+
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("timed out waiting for submitter service at %s: %w", c.hostAddr, ctx.Err())
